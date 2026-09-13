@@ -1,6 +1,11 @@
 {
-  "name": "WeatherGPT: Climate Intelligence & Early Warning System",
-  "description": "Conversational AI platform for numerical weather forecasting (GFS/WRF), interactive GIS radar & alert mapping, rural multilingual voice advisories, and emergency broadcast dispatch.",
-  "requestFramePermissions": ["microphone", "geolocation"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "name": "Remix WeatherGPT: Climate Intelligence \u0026 Early Warning System",
+  "description": "Conversational AI platform for numerical weather forecasting (GFS/WRF), interactive GIS radar \u0026 alert mapping, rural multilingual voice advisories, and emergency broadcast dispatch.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

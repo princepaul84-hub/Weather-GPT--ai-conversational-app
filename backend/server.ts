@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { User } from './src/models/User';
 import { ChatHistory } from './src/models/ChatHistory';
+import { getIMDWarnings } from './src/services/imdService';
 
 dotenv.config();
 
@@ -596,6 +597,30 @@ app.get('/api/alerts/live', (req, res) => {
     lastSynopticUpdate: new Date().toISOString(),
     radarStatus: 'Doppler Radar Scan Continuous (Frequency: 2.8 GHz)',
   });
+});
+
+// 3b. IMD (India Meteorological Department) Warnings Endpoint
+app.get('/api/warnings/imd', async (req, res) => {
+  try {
+    const district = req.query.district as string;
+    const subdivision = req.query.subdivision as string;
+    const locationName = req.query.locationName as string;
+    const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+    const lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+
+    const data = await getIMDWarnings({
+      district,
+      subdivision,
+      locationName,
+      lat,
+      lon
+    });
+
+    res.json(data);
+  } catch (error) {
+    console.error('IMD Warning API error:', error);
+    res.status(500).json({ error: 'Failed to retrieve IMD warning telemetry' });
+  }
 });
 
 // 4. Emergency Broadcast Dispatch Endpoint

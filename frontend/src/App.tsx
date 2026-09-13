@@ -9,11 +9,11 @@ import { ChatBubble } from './components/ChatBubble';
 import { EmergencyBroadcastModal } from './components/EmergencyBroadcastModal';
 import { InstallPWA } from './components/InstallPWA';
 import { ReloadPrompt } from './components/ReloadPrompt';
-
 import { InteractiveMapView } from './components/InteractiveMapView';
 import { SettingsView } from './components/SettingsView';
-
+import { WarningsPage } from './components/WarningsPage';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { IMDWarningsModal } from './components/IMDWarningsModal';
 import { useVoiceAssistant } from './hooks/useVoiceAssistant';
 import { 
   Coordinates, 
@@ -21,7 +21,8 @@ import {
   LanguageCode, 
   WeatherMetrics, 
   WeatherAlert, 
-  ChatMessage 
+  ChatMessage,
+  IMDWarningsResponse
 } from './types';
 import { 
   PRESET_REGIONS, 
@@ -31,7 +32,7 @@ import {
 
 export default function App() {
   const [currentLocation, setCurrentLocation] = useState<Coordinates>(PRESET_REGIONS[0]);
-  const [activeTab, setActiveTab] = useState<'Forecast' | 'Maps' | 'Chat' | 'Settings'>('Forecast');
+  const [activeTab, setActiveTab] = useState<'Forecast' | 'Maps' | 'Chat' | 'Settings' | 'Warnings'>('Forecast');
   const [currentPersona, setCurrentPersona] = useState<PersonaType>('Farmer');
   const [currentLang, setCurrentLang] = useState<LanguageCode>('en');
   const [weatherData, setWeatherData] = useState<WeatherMetrics | null>(null);
@@ -53,6 +54,33 @@ export default function App() {
   // Emergency Broadcast Modal state
   const [isSOSModalOpen, setIsSOSModalOpen] = useState(false);
   const [sosPrefillText, setSosPrefillText] = useState<string | undefined>();
+
+  // IMD Warnings State
+  const [imdData, setImdData] = useState<IMDWarningsResponse | null>(null);
+  const [isIMDModalOpen, setIsIMDModalOpen] = useState(false);
+  const [activeIMDTab, setActiveIMDTab] = useState<'district' | 'subdivision' | 'disaster'>('district');
+
+  const fetchIMDData = useCallback(async () => {
+    try {
+      const distName = currentLocation.name.split(',')[0].trim();
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/warnings/imd?district=${encodeURIComponent(distName)}&locationName=${encodeURIComponent(currentLocation.name)}&lat=${currentLocation.lat}&lon=${currentLocation.lng}`);
+      if (res.ok) {
+        const data = await res.json();
+        setImdData(data);
+      }
+    } catch (e) {
+      console.warn('Could not fetch IMD warnings', e);
+    }
+  }, [currentLocation]);
+
+  useEffect(() => {
+    fetchIMDData();
+  }, [fetchIMDData]);
+
+  const handleOpenIMDWarnings = (tab?: 'district' | 'subdivision' | 'disaster') => {
+    if (tab) setActiveIMDTab(tab);
+    setIsIMDModalOpen(true);
+  };
 
   useEffect(() => {
     if (isDarkMode) {
@@ -254,20 +282,10 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)} 
         onLogin={(username) => setCurrentUser(username)} 
       />
-      {activeTab === 'Maps' ? (
-        <InteractiveMapView 
-          currentLocation={currentLocation} 
-          onLocationSelect={(loc) => {
-            handleLocationSelect(loc);
-            setActiveTab('Forecast');
-          }}
-        />
-      ) : activeTab === 'Settings' ? (
+
+      {activeTab === 'Warnings' ? (
         <>
           <Navbar
-            currentUser={currentUser}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-            onLogout={() => { localStorage.removeItem('token'); setCurrentUser(null); }}
             currentLang={currentLang}
             onLanguageChange={setCurrentLang}
             activeAlerts={activeAlerts}
@@ -282,6 +300,46 @@ export default function App() {
             isDarkMode={isDarkMode}
             onToggleTheme={toggleTheme}
             presetRegions={presetRegions}
+            currentUser={currentUser}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onLogout={() => { localStorage.removeItem('token'); setCurrentUser(null); }}
+            onOpenWarnings={() => setActiveTab('Warnings')}
+            imdData={imdData}
+            onOpenIMDWarnings={handleOpenIMDWarnings}
+          />
+          <WarningsPage currentLocation={currentLocation} />
+        </>
+      ) : activeTab === 'Maps' ? (
+        <InteractiveMapView 
+          currentLocation={currentLocation} 
+          onLocationSelect={(loc) => {
+            handleLocationSelect(loc);
+            setActiveTab('Forecast');
+          }}
+        />
+      ) : activeTab === 'Settings' ? (
+        <>
+          <Navbar
+            currentUser={currentUser}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onLogout={() => { localStorage.removeItem('token'); setCurrentUser(null); }}
+            onOpenWarnings={() => setActiveTab('Warnings')}
+            currentLang={currentLang}
+            onLanguageChange={setCurrentLang}
+            activeAlerts={activeAlerts}
+            currentLocation={currentLocation}
+            onLocationSelect={handleLocationSelect}
+            onOpenSOSModal={() => {
+              setSosPrefillText(undefined);
+              setIsSOSModalOpen(true);
+            }}
+            isSpeaking={isSpeaking}
+            onStopSpeaking={stopSpeaking}
+            isDarkMode={isDarkMode}
+            onToggleTheme={toggleTheme}
+            presetRegions={presetRegions}
+            imdData={imdData}
+            onOpenIMDWarnings={handleOpenIMDWarnings}
           />
           <SettingsView
             presetRegions={presetRegions}
@@ -301,6 +359,7 @@ export default function App() {
             currentUser={currentUser}
             onOpenAuth={() => setIsAuthModalOpen(true)}
             onLogout={() => { localStorage.removeItem('token'); setCurrentUser(null); }}
+            onOpenWarnings={() => setActiveTab('Warnings')}
             currentLang={currentLang}
             onLanguageChange={setCurrentLang}
             activeAlerts={activeAlerts}
@@ -315,6 +374,8 @@ export default function App() {
             isDarkMode={isDarkMode}
             onToggleTheme={toggleTheme}
             presetRegions={presetRegions}
+            imdData={imdData}
+            onOpenIMDWarnings={handleOpenIMDWarnings}
           />
           <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 lg:p-8 pb-28">
             <div className="h-[75vh] min-h-[550px]">
@@ -342,6 +403,7 @@ export default function App() {
             currentUser={currentUser}
             onOpenAuth={() => setIsAuthModalOpen(true)}
             onLogout={() => { localStorage.removeItem('token'); setCurrentUser(null); }}
+            onOpenWarnings={() => setActiveTab('Warnings')}
             currentLang={currentLang}
             onLanguageChange={setCurrentLang}
             activeAlerts={activeAlerts}
@@ -356,6 +418,8 @@ export default function App() {
             isDarkMode={isDarkMode}
             onToggleTheme={toggleTheme}
             presetRegions={presetRegions}
+            imdData={imdData}
+            onOpenIMDWarnings={handleOpenIMDWarnings}
           />
           <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 pb-20">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -411,16 +475,25 @@ export default function App() {
             onStopListening={stopListening}
             onSpeak={speak}
           />
-          
-          <EmergencyBroadcastModal
-            isOpen={isSOSModalOpen}
-            onClose={() => setIsSOSModalOpen(false)}
-            currentLocation={currentLocation}
-            activeAlerts={activeAlerts}
-            prefilledMessage={sosPrefillText}
-          />
         </>
       )}
+
+      <EmergencyBroadcastModal
+        isOpen={isSOSModalOpen}
+        onClose={() => setIsSOSModalOpen(false)}
+        currentLocation={currentLocation}
+        activeAlerts={activeAlerts}
+        prefilledMessage={sosPrefillText}
+      />
+
+      <IMDWarningsModal
+        isOpen={isIMDModalOpen}
+        onClose={() => setIsIMDModalOpen(false)}
+        data={imdData}
+        currentLocationName={currentLocation.name}
+        onRefresh={fetchIMDData}
+        initialTab={activeIMDTab}
+      />
 
       {/* Shared Bottom Navigation */}
       <nav className={`fixed bottom-0 left-0 right-0 border-t pb-[env(safe-area-inset-bottom,16px)] pt-2 px-4 flex justify-around items-center z-[9999] h-16 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] shrink-0 ${activeTab === 'Maps' ? 'bg-[#121826]/90 backdrop-blur-md border-white/10' : 'bg-[#182133] border-white/5'}`}>
