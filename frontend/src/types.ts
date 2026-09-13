@@ -124,3 +124,57 @@ export interface EmergencyBroadcastPayload {
   dispatchedAt: string;
   status: 'Draft' | 'Queued' | 'Dispatched' | 'Delivered';
 }
+
+export interface IMDDistrictWarning {
+  district: string;
+  state: string;
+  subdivision: string;
+  color: 'Red' | 'Orange' | 'Yellow' | 'Green';
+  phenomenon: string;
+  advisory: string;
+  validUntil: string;
+  rainfallMmEstimated?: number;
+  windSpeedKmph?: number;
+}
+
+export interface IMDSubdivisionWarning {
+  id: string;
+  subdivision: string;
+  region: 'Northwest' | 'Central' | 'East & Northeast' | 'South Peninsular';
+  color: 'Red' | 'Orange' | 'Yellow' | 'Green';
+  warning: string;
+  impactLevel: string;
+  bulletinDate: string;
+}
+
+export interface IMDDisasterWarning {
+  id: string;
+  title: string;
+  type: 'Flash Flood' | 'Cyclone Watch' | 'Severe Thunderstorm' | 'Landslide' | 'Heatwave Hazard';
+  severity: 'Extreme' | 'Severe' | 'Moderate';
+  color: 'Red' | 'Orange' | 'Yellow';
+  affectedSubdivisions: string[];
+  affectedDistricts: string[];
+  advisoryDirective: string;
+  issuedAt: string;
+  issuingAuthority: string;
+}
+
+export interface IMDWarningsResponse {
+  lastUpdated: string;
+  source: string;
+  nationalSummary: {
+    redAlerts: number;
+    orangeAlerts: number;
+    yellowAlerts: number;
+    greenAlerts: number;
+  };
+  districtWarnings: IMDDistrictWarning[];
+  subdivisionWarnings: IMDSubdivisionWarning[];
+  disasterWarnings: IMDDisasterWarning[];
+  currentLocationWarning?: {
+    district?: IMDDistrictWarning;
+    subdivision?: IMDSubdivisionWarning;
+    disaster?: IMDDisasterWarning;
+  };
+}

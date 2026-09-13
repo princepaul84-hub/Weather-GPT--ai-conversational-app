@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(), 
     tailwindcss(),
-    VitePWA({
+    (VitePWA as any)({
       registerType: 'prompt',
       includeAssets: [
         'icons/icon-48x48.png',
